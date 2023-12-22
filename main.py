@@ -4,22 +4,12 @@ from pygame.locals import *
 from OpenGL.GL import *
 from PIL import Image
 
-vertices = [
-    [1, 1, 1],
-    [-1, -1, 1],
-    [-1, 1, -1],
-    [1, -1, -1]
-]
-
-edges = [
-    [0, 1],
-    [1, 2],
-    [2, 0],
-    [0, 3],
-    [1, 3],
-    [2, 3]
-]
-
+points = [
+            [-1, -1, 1],
+            [1, -1, 1],
+            [0, 1, 1],
+            [0, 0.02, -1]
+        ]
 
 camera_distance = 5.0
 camera_speed = 0.05
@@ -41,55 +31,91 @@ def set_lighting():
     glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE)
 
 
-def draw_triangles(level, v0, v1, v2):
-    if level == 0:
-        return
+def draw_tetrahedron(v1, v2, v3, v4):
+    draw_triangle(v1, v2, v3)
+    draw_triangle(v1, v3, v4)
+    draw_triangle(v2, v3, v4)
+    draw_triangle(v1, v2, v4)
 
+
+def draw_triangle(point_a, point_b, point_c):
     glBegin(GL_TRIANGLES)
-    glVertex3fv(v0, v1, v2)
-    glVertex3fv(v1, v0, v2)
-    glVertex3fv(v2, v1, v0)
-    glVertex3fv(v0, v2, v1)
-    glVertex3fv(v1, v2, v0)
-    glVertex3fv(v2, v0, v1)
+
+    glColor3f(1, 1, 1)
+    glVertex3f(*point_a)
+
+    glColor3f(0.75, 0.75, 0.75)
+    glVertex3f(*point_b)
+
+    glColor3f(0.5, 0.5, 0.5)
+    glVertex3f(*point_c)
+
     glEnd()
 
 
-def draw_tetrahedron():
-    glBegin(GL_LINES)
-    for edge in edges:
-        for vertex in edge:
-            glVertex3fv(vertices[vertex])
-    glEnd()
+def draw_pyramid(v1, v2, v3, v4, level):
+    if level == 0:
+        draw_tetrahedron(v1, v2, v3, v4)
+        return
+    else:
+        v12 = [
+            (v1[0] + v2[0]) / 2,
+            (v1[1] + v2[1]) / 2,
+            (v1[2] + v2[2]) / 2
+        ]
 
-    level = 2
+        v23 = [
+            (v2[0] + v3[0]) / 2,
+            (v2[1] + v3[1]) / 2,
+            (v2[2] + v3[2]) / 2
+        ]
 
-    mid01 = [(vertices[0][0] + vertices[1][0]) / 2, (vertices[0][1] + vertices[1][1]) / 2, (vertices[0][2] + vertices[1][2]) / 2]
-    mid12 = [(vertices[1][0] + vertices[2][0]) / 2, (vertices[1][1] + vertices[2][1]) / 2, (vertices[1][2] + vertices[2][2]) / 2]
-    mid20 = [(vertices[2][0] + vertices[0][0]) / 2, (vertices[2][1] + vertices[0][1]) / 2, (vertices[2][2] + vertices[0][2]) / 2]
-    mid03 = [(vertices[0][0] + vertices[3][0]) / 2, (vertices[0][1] + vertices[3][1]) / 2, (vertices[0][2] + vertices[3][2]) / 2]
-    mid13 = [(vertices[1][0] + vertices[3][0]) / 2, (vertices[1][1] + vertices[3][1]) / 2, (vertices[1][2] + vertices[3][2]) / 2]
-    mid23 = [(vertices[2][0] + vertices[3][0]) / 2, (vertices[2][1] + vertices[3][1]) / 2, (vertices[2][2] + vertices[3][2]) / 2]
+        v31 = [
+            (v1[0] + v3[0]) / 2,
+            (v1[1] + v3[1]) / 2,
+            (v1[2] + v3[2]) / 2
+        ]
 
-    draw_triangles(level, mid01, mid12, mid20)
-    draw_triangles(level, mid01, mid03, mid13)
-    draw_triangles(level, mid20, mid03, mid23)
-    draw_triangles(level, mid12, mid13, mid23)
+        v14 = [
+            (v1[0] + v4[0]) / 2,
+            (v1[1] + v4[1]) / 2,
+            (v1[2] + v4[2]) / 2
+        ]
+
+        v24 = [
+            (v2[0] + v4[0]) / 2,
+            (v2[1] + v4[1]) / 2,
+            (v2[2] + v4[2]) / 2
+        ]
+
+        v34 = [
+            (v3[0] + v4[0]) / 2,
+            (v3[1] + v4[1]) / 2,
+            (v3[2] + v4[2]) / 2
+        ]
+
+        draw_pyramid(v1, v12, v31, v14, level - 1)
+        draw_pyramid(v12, v2, v23, v24, level - 1)
+        draw_pyramid(v31, v23, v3, v34, level - 1)
+        draw_pyramid(v14, v24, v34, v4, level - 1)
 
 
 def change_texture(state):
     if state:
         glDisable(GL_TEXTURE_2D)
-        #glDisable(GL_CULL_FACE)
     else:
         glEnable(GL_TEXTURE_2D)
-        #glEnable(GL_CULL_FACE)
         glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
 
 
 def main():
+    level = int(input("Podaj wysokosc piramidy Sierpinskiego do wygenerowania: "))
+    if level < 1:
+        print("Niepoprawna wysokosc")
+        exit(0)
+
     pygame.init()
     display = (800, 600)
     pygame.display.set_mode(display, DOUBLEBUF | OPENGL)
@@ -105,6 +131,8 @@ def main():
         GL_RGB, GL_UNSIGNED_BYTE, image.tobytes("raw", "RGB", 0, -1)
     )
     texture_enabled = False
+
+    print("Generowanie zakonczone")
 
     while True:
         keys = pygame.key.get_pressed()
@@ -133,7 +161,9 @@ def main():
 
         glRotatef(0.25, 0, 1, 0)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        draw_tetrahedron()
+
+        draw_pyramid(points[0], points[1], points[2], points[3], level - 1)
+
         pygame.display.flip()
         pygame.time.wait(10)
 
