@@ -11,7 +11,6 @@ points = [
             [0, 0.02, -1]
         ]
 
-camera_distance = 5.0
 camera_speed = 0.05
 zoom_speed = 0.1
 
@@ -111,10 +110,15 @@ def change_texture(state):
 
 
 def main():
-    level = int(input("Podaj wysokosc piramidy Sierpinskiego do wygenerowania: "))
-    if level < 1:
-        print("Niepoprawna wysokosc")
-        exit(0)
+    while True:
+        try:
+            level = int(input("Podaj liczbę: "))
+            if level > 0:
+                break
+            else:
+                print("Podaj liczbe dodatnia")
+        except ValueError:
+            print("To nie jest liczba. Wpisz ponownie.")
 
     pygame.init()
     display = (800, 600)
